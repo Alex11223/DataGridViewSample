@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
 using System.Drawing;
+using System.Linq;
 using System.Text;
 using System.Windows.Forms;
 using System.Reflection;
@@ -60,41 +61,32 @@ namespace DataGridViewSample
 				e.Value = BindProperty(dataGridView1.Rows[e.RowIndex].DataBoundItem, dataGridView1.Columns[e.ColumnIndex].DataPropertyName);
 		}
 
-		private string BindProperty(object property, string propertyName)
-		{
-			string retValue;
+        private object BindProperty(object property, string propertyName)
+        {
+            object retValue = "";
 
-			retValue = "";
+            if (propertyName.Contains("."))
+            {
+                string leftPropertyName = propertyName.Substring(0, propertyName.IndexOf("."));
 
-			if (propertyName.Contains("."))
-			{
-				PropertyInfo[] arrayProperties;
-				string leftPropertyName;
+                PropertyInfo propertyInfo = property.GetType().GetProperties().FirstOrDefault(p => p.Name == leftPropertyName);
 
-				leftPropertyName = propertyName.Substring(0, propertyName.IndexOf("."));
-				arrayProperties = property.GetType().GetProperties();
+                if (propertyInfo != null)
+                {
+                    retValue = BindProperty(
+                        propertyInfo.GetValue(property, null),
+                        propertyName.Substring(propertyName.IndexOf(".") + 1));
+                }
+            }
+            else
+            {
+                Type propertyType = property.GetType();
+                PropertyInfo propertyInfo = propertyType.GetProperty(propertyName);
+                retValue = propertyInfo.GetValue(property, null);
+            }
 
-				foreach (PropertyInfo propertyInfo in arrayProperties)
-				{
-					if (propertyInfo.Name == leftPropertyName)
-					{
-						retValue = BindProperty(propertyInfo.GetValue(property, null), propertyName.Substring(propertyName.IndexOf(".") + 1));
-						break;
-					}
-				}
-			}
-			else
-			{
-				Type propertyType;
-				PropertyInfo propertyInfo;
-
-				propertyType = property.GetType();
-				propertyInfo = propertyType.GetProperty(propertyName);
-				retValue = propertyInfo.GetValue(property, null).ToString();
-			}
-
-			return retValue;
-		}
+            return retValue;
+        }
 
         private void _btnNew_Click(object sender, EventArgs e)
         {
